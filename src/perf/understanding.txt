@@ -1,0 +1,60 @@
+Sequential Memory Access
+
+ % perf stat -e cache-misses,cache-references,cycles,branch-instructions,branch-misses,L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses,l2_rqsts.all_demand_miss,l2_rqsts.all_demand_references ./exe_op
+
+ Performance counter stats for './exe_op':
+
+           117,784      cache-misses                     #   40.22% of all cache refs           (59.25%)
+           292,873      cache-references                                                        (65.08%)
+        64,251,901      cycles                                                                  (71.87%)
+         3,500,064      branch-instructions                                                     (78.66%)
+            14,343      branch-misses                    #    0.41% of all branches             (79.62%)
+        20,737,892      L1-dcache-loads                                                         (79.62%)
+           103,533      L1-dcache-load-misses            #    0.50% of all L1-dcache accesses   (79.62%)
+            24,555      LLC-loads                                                               (79.62%)
+             9,212      LLC-load-misses                  #   37.52% of all LL-cache accesses    (75.67%)
+            35,891      l2_rqsts.all_demand_miss                                                (68.88%)
+            84,918      l2_rqsts.all_demand_references                                          (62.09%)
+
+       0.014970838 seconds time elapsed
+
+       0.013963000 seconds user
+       0.000997000 seconds sys
+
+
+High L3 cache misses 
+If an element isn't in the L1 cache, it's almost certainly not in the L3 cache, since due to sequential access, when a cache line is evicted, it won't be needed again. but if an element is in a cache, it is in the l1 cache almost surely, due to the sequential nature of the memory accesses, the number of accessed cache lines across contiguous searches are almost certainly the same or very similar, so they all fit in the L1 cache
+
+Low L1 cache misses
+Since elements are accessed sequentially, the cache lines needed to access sequential elements are the same. for example, to access 1, 2, 3, 4..., you always do the following pattern, assumming 1.000.000 elements. 500.000 -> 250.000 -> 125.000 -> 75.000. so these numbers are constantly in the L1 cache.
+
+
+
+Random Memory Access
+
+ % perf stat -e cache-misses,cache-references,cycles,branch-instructions,branch-misses,L1-dcache-loads,L1-dcache-load-misses,LLC-loads,LLC-load-misses,l2_rqsts.all_demand_miss,l2_rqsts.all_demand_references ./exe_op
+
+ Performance counter stats for './exe_op':
+
+            73,311      cache-misses                     #    0.26% of all cache refs           (72.13%)
+        27,831,896      cache-references                                                        (72.12%)
+       193,639,503      cycles                                                                  (72.12%)
+         6,087,245      branch-instructions                                                     (72.12%)
+            32,559      branch-misses                    #    0.53% of all branches             (72.12%)
+        23,106,326      L1-dcache-loads                                                         (72.12%)
+         9,021,743      L1-dcache-load-misses            #   39.04% of all L1-dcache accesses   (72.12%)
+         5,505,557      LLC-loads                                                               (73.45%)
+            25,744      LLC-load-misses                  #    0.47% of all LL-cache accesses    (74.34%)
+         5,548,597      l2_rqsts.all_demand_miss                                                (74.34%)
+         9,086,186      l2_rqsts.all_demand_references                                          (73.01%)
+
+       0.043283599 seconds time elapsed
+
+       0.043274000 seconds user
+       0.000000000 seconds sys
+
+Low L3 cache misses
+The whole array fits into the L3 cache, so once a cache line of the array has been added to it, it stays there.
+
+High L1 cache misses
+Due to the random nature of the memory accesses, cache lines are constantly evicted and loaded again, since the whole array doesn't fit into the L1 cache.

@@ -1,0 +1,7 @@
+/target
+**/perf.data
+**/perf.data.old
+**/perf.script.out
+/results
+/plots
+/graph_creation/venv
