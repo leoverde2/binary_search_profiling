@@ -3,10 +3,13 @@ import re
 
 def aggregate_perf_events_python(perf_script_output_file: str, function_name: str):
     event_counts = {
-        "L1-dcache-loads": 0,
-        "L1-dcache-load-misses": 0,
-        "branch-instructions": 0,
-        "branch-misses": 0,
+        "L1-dcache-loads": 1,
+        "L1-dcache-load-misses": 1,
+        "branch-instructions": 1,
+        "branch-misses": 1,
+        "cycles": 1,
+        "LLC-loads": 1,
+        "LLC-load-misses": 1,
     }
 
     with open(perf_script_output_file, 'r') as f:
@@ -23,7 +26,7 @@ def aggregate_perf_events_python(perf_script_output_file: str, function_name: st
 
             if match:
                 matched_name = match.group(2)
-                if matched_name == function_name:
+                if matched_name == function_name or function_name in matched_name:
 
                     event_count = int(parts[3])
                     evente_name = parts[4]
