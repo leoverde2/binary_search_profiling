@@ -34,9 +34,9 @@ impl Searchable for Eytzinger{
         }
     }
 
-    fn get_funcs<'a>() -> &'a [&'a dyn SearchScheme<Self>] {
+    fn get_funcs() -> Vec<&'static dyn SearchScheme<Self>> {
         //&[&Eytzinger::eyz_search, &Eytzinger::search_prefetch, &Eytzinger::search_branchless, &Eytzinger::search_branchless_prefetch]
-        &[&Eytzinger::search_prefetch]
+        vec!(&Eytzinger::search_prefetch)
     }
 
 

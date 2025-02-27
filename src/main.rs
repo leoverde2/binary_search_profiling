@@ -2,7 +2,9 @@
 #![feature(
     core_intrinsics,
     select_unpredictable,
-    array_windows
+    array_windows,
+    portable_simd,
+    array_chunks,
 )]
 
 use std::{env, path::PathBuf};
@@ -26,8 +28,8 @@ fn main() {
         let vals = &vals[..len];
         let queries = get_queries();
 
-        run_exps::<SortedVec>(&mut results, vals, &queries, size);
-        run_exps::<Eytzinger>(&mut results, vals, &queries, size);
+        //run_exps::<SortedVec>(&mut results, vals, &queries, size);
+        //run_exps::<Eytzinger>(&mut results, vals, &queries, size);
         run_exps::<STree>(&mut results, vals, &queries, size);
     }
     save_results(&results);
@@ -53,15 +55,17 @@ fn get_queries() -> Vec<u32>{
 pub fn sizes() -> Vec<usize>{
     let mut result = Vec::new();
     let from: usize = 4;
-    let to: usize = 30;
+    let to: usize = 32;
 
-    for b in from..=to{
+    for b in from..to{
         let base = 1 << b;
         result.push(base);
         result.push(base * 5 / 4);
         result.push(base * 3 / 2);
         result.push(base * 7 / 4);
     }
+    let base = 1 << to;
+    result.push(base);
     result
 }
 

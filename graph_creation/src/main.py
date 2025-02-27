@@ -44,7 +44,7 @@ def plot(experiment_name: str, title: str, data: pd.DataFrame, ymax=None) -> Non
     )
 
     ax.set_xscale("log", base=2)
-    ax.xaxis.set_major_locator(LogLocator(base=2, numticks=15))
+    ax.xaxis.set_major_locator(LogLocator(base=2, numticks=20))
 
     if ymax:
         ax.set_ylim(0, ymax)
@@ -71,7 +71,7 @@ def main() -> None:
         "experiment",
         "experiment-title",
         data,
-        ymax=1200
+        ymax=120,
     )
 
 if __name__ == "__main__":

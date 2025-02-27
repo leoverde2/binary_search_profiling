@@ -1,6 +1,8 @@
+use std::array::from_fn;
+
 use rand::Fill;
 
-use crate::query::bench_search::{SearchScheme, Searchable};
+use crate::{query::bench_search::{batched, Batched, SearchScheme, Searchable}, utils::prefetch_index};
 
 use super::s_tree_node::STreeNode;
 
@@ -93,8 +95,17 @@ impl Searchable for STree{
         Self {offsets, nodes}
     }
 
-    fn get_funcs<'a>() -> &'a [&'a dyn SearchScheme<Self>] {
-        &[&Self::search_linear]
+    fn get_funcs() -> Vec<&'static dyn SearchScheme<Self>> {
+        let batch_2 = Box::leak(Box::new(batched(Self::batch::<2>)));
+        let batch_4 = Box::leak(Box::new(batched(Self::batch::<4>)));
+        let batch_8 = Box::leak(Box::new(batched(Self::batch::<8>)));
+        let batch_16 = Box::leak(Box::new(batched(Self::batch::<16>)));
+        let batch_32 = Box::leak(Box::new(batched(Self::batch::<32>)));
+        let batch_64 = Box::leak(Box::new(batched(Self::batch::<64>)));
+        let batch_128 = Box::leak(Box::new(batched(Self::batch::<128>)));
+        let batch_128_prefetch = Box::leak(Box::new(batched(Self::batch_prefetch::<128>)));
+        //vec!(&Self::search_popcnt, batch_2, batch_4, batch_8, batch_16, batch_32, batch_64, batch_128)
+        vec!(batch_128, batch_128_prefetch)
     }
 }
 
@@ -118,11 +129,64 @@ impl STree {
         let last = self.offsets.last().unwrap();
         let node = self.node(last + node_idx);
         let key_idx = find(node, value);
-        self.key(last + node_idx, key_idx)
+        self.key(last + node_idx + key_idx / NODE_LEN, key_idx % NODE_LEN)
     }
 
+    #[inline(never)]
     fn search_linear(&self, value: u32) -> u32{
         self.search_with_find_impl(value, STreeNode::find_linear)
+    }
+
+    #[inline(never)]
+    fn search_linear_count(&self, value: u32) -> u32{
+        self.search_with_find_impl(value, STreeNode::find_linear_count)
+    }
+
+    #[inline(never)]
+    fn search_manual_simd(&self, value: u32) -> u32 {
+        self.search_with_find_impl(value, STreeNode::find_simd)
+    }
+
+    #[inline(never)]
+    fn search_popcnt(&self, value: u32) -> u32 {
+        #[cfg(not(target_feature = "avx2"))]
+        compile_error!("AVX2 support is required to compile this program");
+        self.search_with_find_impl(value, |node, val| unsafe { node.find_popcnt(val)})
+    }
+
+    #[inline(never)]
+    fn batch<const P: usize>(&self, values: &[u32; P]) -> [u32; P]{
+        let mut k = [0; P];
+        for [o, _] in self.offsets.array_windows() {
+            for i in 0..P{
+                let jump_to = self.node(o + k[i]).find_popcnt(values[i]);
+                k[i] = k[i] * (NODE_LEN + 1) + jump_to;
+            }
+        }
+
+        let o = self.offsets.last().unwrap();
+        from_fn(|i| {
+            let idx = self.node(o + k[i]).find_popcnt(values[i]);
+            self.key(o + k[i] + idx / NODE_LEN, idx % NODE_LEN)
+        })
+    }
+
+    #[inline(never)]
+    fn batch_prefetch<const P: usize>(&self, values: &[u32; P]) -> [u32; P]{
+        let mut k = [0; P];
+        for [o, o2] in self.offsets.array_windows() {
+            for i in 0..P{
+                let jump_to = self.node(o + k[i]).find_popcnt(values[i]);
+                k[i] = k[i] * (NODE_LEN + 1) + jump_to;
+                prefetch_index(&self.nodes, o2 + k[i])
+            }
+        }
+
+        let o = self.offsets.last().unwrap();
+        from_fn(|i| {
+            let idx = self.node(o + k[i]).find_popcnt(values[i]);
+            self.key(o + k[i] + idx / NODE_LEN, idx % NODE_LEN)
+        })
     }
 }
 
@@ -132,8 +196,9 @@ mod tests {
 
     #[test]
     fn test_tree(){
-        let arr = [0, 1, 2, 3, 4, 5, 6, 7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32];
+        let arr = [0, 1, 2, 3, 4, 5, 6, 7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32, 33, 34, 35, 36 ,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88];
         let tree = STree::new(&arr);
         println!("{:?}", tree);
+        assert_eq!(1, 2);
     }
 }

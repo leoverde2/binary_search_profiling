@@ -12,9 +12,9 @@ impl Searchable for SortedVec{
         SortedVec{vals: sorted_vals.to_vec()}
     }
 
-    fn get_funcs<'a>() -> &'a [&'static dyn SearchScheme<Self>] {
+    fn get_funcs() -> Vec<&'static dyn SearchScheme<Self>> {
         //&[&Self::binary_search_normal, &Self::binary_search_branchless_prefetching, &Self::binary_search_branchless, &Self::std_binary_search, &Self::binary_search_random]
-        &[&Self::binary_search_branchless_prefetching]
+        vec!(&Self::binary_search_branchless_prefetching)
     }
 }
 
